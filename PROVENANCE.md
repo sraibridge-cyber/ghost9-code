@@ -27,4 +27,31 @@ The `.part-NN.bin` chunking in the origin exists only to stay under GitHub's 100
 
 ## How this tree was brought here
 
-Blobless clone of the origin, sparse checkout of everything except `models/`, the three `manifest.json` pins kept, then re-committed here. The exact commands are recorded in `BRIEF-004-C0-repo-split.md` in the CSS Labs brief set. The archive keeps its history; this repository starts a new one and states where it came from.
+Blobless clone of the origin, sparse checkout of everything except `models/`, then re-committed here. The exact commands are recorded in `BRIEF-004-C0-repo-split.md` in the CSS Labs brief set. The archive keeps its history; this repository starts a new one and states where it came from.
+
+## Addendum 2026-11-23 — executed import record
+
+Appended after the import ran. Nothing above is edited; where the executed result differs from the plan, the difference is stated here.
+
+Measured on the import run:
+
+- `git clone --filter=blob:none --no-checkout --depth 1 -b review/ghost9-combined` — 1 s
+- sparse pattern set to `/*` + `!models/*` **before** checkout — checkout 4 s
+- checked-out tree: 4.5 MB on disk, no weight file present anywhere
+
+**Correction made before publication.** The first pass excluded all of `models/`, which swept out the
+three `tokenizer.json` files along with the weights. That was wrong: a tokenizer is vocabulary data,
+0.7–2.1 MB, and `src/qc_node.js` reads it off disk at load while the three Python services call
+`Tokenizer.from_file()` on it. Excluding them would have made a live module raise `ENOENT`. The
+pattern was narrowed to the weight binaries (`models/*/*.bin`, `models/*/*.onnx`), the tokenizers were
+restored, and the `.gitignore` rule was written to match. Nothing was pushed in the defective state.
+
+**Result of the import:** 358 tracked files = 353 code files from the origin tree + 3 `tokenizer.json`
++ `PROVENANCE.md` + `models/README.md`. Nine weight files (217,195,089 bytes) are absent by design and
+still pinned in their manifests. The imported tree is byte-identical to `0c34b39` on every shared file
+except `.gitignore`, which gains the two weight-binary rules.
+
+**Also corrected:** the first version of `models/README.md` said to run `fetch_model.py` to *obtain*
+the weights. It does not download; it assembles chunks kept in the origin repository and verifies their
+SHA3-512 pins. In this repository the chunks are absent, so it fails with `FileNotFoundError` — which
+is the honest outcome and is now documented as such.

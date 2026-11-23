@@ -1,0 +1,15 @@
+{
+  "bonsai_root": "bonsai_1793205035297_6n5n483",
+  "bonsai_stats": {
+    "totalNodes": 6,
+    "leafCount": 5,
+    "branchCount": 1,
+    "prunedCount": 0,
+    "maxDepth": 10,
+    "rootDepth": 1,
+    "avgMu": 0.9996999999999999,
+    "ltmCount": 6,
+    "stmCount": 0,
+    "nullCount": 0
+  }
+}

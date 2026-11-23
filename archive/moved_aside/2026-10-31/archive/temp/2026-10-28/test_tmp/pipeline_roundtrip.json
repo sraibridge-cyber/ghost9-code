@@ -1,0 +1,83 @@
+{
+  "cc": {
+    "scores": {
+      "D1": 0.0001,
+      "D2": 0.0001,
+      "D3": 0.0001,
+      "D4": 0.0001,
+      "D5": 0.0001,
+      "D6": 0.0001,
+      "D7": 0.0001,
+      "D8": 0.0001
+    },
+    "mu": 0.00010000000000000009,
+    "pass": false,
+    "tier": "LTM",
+    "tau": 0.943,
+    "tau_canonical": 0.943,
+    "tau_ltm": 0.8958499999999999,
+    "domain_ceiling": 0.0001,
+    "whitlock": {
+      "magnitude": 0.2630668208823282,
+      "phase": 63.43494882292201,
+      "real": 0.11764705882352941,
+      "imag": 0.23529411764705882
+    },
+    "version": "v3.2",
+    "weights": {
+      "D1": 0.2,
+      "D2": 0.1,
+      "D3": 0.1,
+      "D4": 0.05,
+      "D5": 0.15,
+      "D6": 0.1,
+      "D7": 0.2,
+      "D8": 0.1
+    },
+    "context": null
+  },
+  "taotie": {
+    "scores": {
+      "signal": 0.9997,
+      "energy": 0.9995,
+      "temporal": 0.9995,
+      "spatial": 0.9995,
+      "cognitive": 0.9995,
+      "ethical": 0.9995,
+      "declarative": 0.9995,
+      "novelty": 0.9995
+    },
+    "mu": 0.9995249978116795,
+    "pass": true,
+    "tier": "STM",
+    "vertex": "PPPP",
+    "hash": "8a436197963852387564b47e17dd55fd8b546cf0affed31ea513f1ade02a8a28f0f26f1e6b6e3fb0e0212358ec9b0e2cf6818d7e74fd69824fe2f07a45278824",
+    "merkle_root": "8a436197963852387564b47e17dd55fd8b546cf0affed31ea513f1ade02a8a28f0f26f1e6b6e3fb0e0212358ec9b0e2cf6818d7e74fd69824fe2f07a45278824",
+    "content": "TAOTIE_MERGED: pipe",
+    "ts": 1793205035498,
+    "parent_ids": [
+      "p"
+    ],
+    "merge_count": 1,
+    "_isMerge": true,
+    "avgScores": {
+      "D1": 0.9997,
+      "D2": 0.9995,
+      "D3": 0.9995,
+      "D4": 0.9995,
+      "D5": 0.9995,
+      "D6": 0.9995,
+      "D7": 0.9995,
+      "D8": 0.9995
+    },
+    "whitlock": {
+      "magnitude": 0.24253562503633297,
+      "phase": 75.96375653207353,
+      "real": 0.058823529411764705,
+      "imag": 0.23529411764705882
+    },
+    "count": 1,
+    "timestamp": 1793205035498
+  },
+  "bonsai": "bonsai_1793205035498_e1l5vxg"
+}
