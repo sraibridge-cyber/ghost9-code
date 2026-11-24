@@ -28,4 +28,21 @@ function mayServeContent(node) {
   return SERVABLE.has(screenOf(node));
 }
 
-module.exports = { screenOf, isServed, mayServeContent, SERVABLE };
+// Count nodes by what they are, not by what they are not. The four buckets are exhaustive
+// over the values this system writes (legacy `undefined` resolves to 'passed'), so
+// total === passed + released + pending + quarantined holds by construction on any state.
+// A screen value the system does not write falls to quarantined: it is neither served nor
+// pending, and counting it as either would be a false claim about it.
+function screenCounts(nodes) {
+  const counts = { passed: 0, released: 0, pending: 0, quarantined: 0 };
+  for (const node of nodes || []) {
+    const s = screenOf(node);
+    if (s === 'passed') counts.passed++;
+    else if (s === 'released') counts.released++;
+    else if (s === 'pending') counts.pending++;
+    else counts.quarantined++;
+  }
+  return counts;
+}
+
+module.exports = { screenOf, isServed, mayServeContent, screenCounts, SERVABLE };

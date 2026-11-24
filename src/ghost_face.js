@@ -22,7 +22,7 @@ const T       = require('./tesseract');
 const { classifyTier, VoidSpace } = require('./taotie');
 const { SpatialWeb }              = require('./spatial_web');
 const { runPrefilterAsync, DEFAULT_MODE } = require('./prefilter');
-const { screenOf, isServed }       = require('./screen');
+const { screenOf, isServed, screenCounts } = require('./screen');
 const { Readable } = require('stream');
 
 const PORT         = 7766;
@@ -409,10 +409,13 @@ const routes = {
       archiveCount = readSealedJson(ARCHIVE_FILE, []).length;
     }
 
-    const served = state.nodes.filter(isServed).length;
+    const counts = screenCounts(state.nodes);
+    const served = counts.passed + counts.released;
 
     return json(res, {
-      n, served_count: served, pending_count: n - served,
+      n, passed_count: counts.passed, released_count: counts.released,
+      pending_count: counts.pending, quarantined_count: counts.quarantined,
+      served_count: served,
       stm_count: stm.length, ltm_count: ltm.length,
       capacity_pct: (n / MAX_NODES * 100).toFixed(1),
       merkle_root: state.merkle_root, whitlock: wc,
@@ -432,11 +435,12 @@ const routes = {
     // carried content, and it still does not; the content rule is src/screen.js, not invisibility.
     let nodes    = state.nodes.slice();
     if (tier)    nodes = nodes.filter(n => (n.tier || 'STM') === tier);
-    const count  = s => nodes.filter(n => screenOf(n) === s).length;
+    const counts = screenCounts(nodes);
     const page   = nodes.slice(offset, offset + limit);
     return json(res, {
-      total: nodes.length, passed: count('passed'), pending: count('pending'), released: count('released'),
-      served_count: count('passed') + count('released'), pending_count: count('pending'),
+      total: nodes.length, passed: counts.passed, released: counts.released,
+      pending: counts.pending, quarantined: counts.quarantined,
+      served_count: counts.passed + counts.released, pending_count: counts.pending,
       offset, limit,
       nodes: page.map(n => ({
         hash: n.hash.slice(0, 16) + '…', screen: screenOf(n), mu: n.mu, tier: n.tier || 'STM',

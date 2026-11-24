@@ -142,6 +142,30 @@ function merkleRoot(nodes) {
   return layer[0];
 }
 
+// A node in the shape /devour writes, so a patched state.json is the same kind of
+// record the services produce rather than a fixture only this probe understands.
+function nodeRecord(text, screen, ts, offset) {
+  const hash = crypto.createHash('sha3-512').update(`${text}|${ts}`).digest('hex');
+  return {
+    id: `${hash}_${offset}`, hash, content: text, screen, mu: 0.97, tier: 'STM',
+    scores: {}, vertex: 'PPPP', merge_count: 1, parent_ids: null, merkle_root: null, ts,
+  };
+}
+
+// Read, mutate and re-seal the scratch state.json, keeping n and the merkle root coherent.
+function withState(scratch, keyFile, mutate) {
+  process.env.GHOST9_KEY_FILE = keyFile;
+  const atRestPath = path.join(scratch, 'src', 'at_rest.js');
+  delete require.cache[require.resolve(atRestPath)];
+  const atRest = require(atRestPath);
+  const statePath = path.join(scratch, 'data', 'state.json');
+  const stored = atRest.readSealedJson(statePath, null);
+  mutate(stored);
+  stored.n = stored.nodes.length;
+  stored.merkle_root = merkleRoot(stored.nodes);
+  atRest.writeSealedJson(statePath, stored);
+}
+
 async function advisoryRun() {
   console.log('\n--- advisory run (config/clf.json mode: advisory) ---');
   const scratch = scratchCopy('advisory', 'advisory');
@@ -188,14 +212,53 @@ async function advisoryRun() {
     assert('C4', 'the 6-word fragment appears nowhere in the /recall body',
       leaked === false, { fragment_present: leaked }, { fragment_present: false });
 
-    // C5 — no door reports a total that silently excludes pending.
-    const v1 = await req('GET', KERNEL_PORT, '/verify');
-    const verify = v1.body || {};
-    assert('C5', '/verify n === served_count + pending_count',
-      v1.status === 200 && verify.n === verify.served_count + verify.pending_count &&
-      verify.pending_count === 1,
-      { n: verify.n, served_count: verify.served_count, pending_count: verify.pending_count },
-      { n: 1, served_count: 0, pending_count: 1 });
+    // C5 — the four-way reconciliation, over a kernel holding all four screen kinds.
+    //
+    // AMENDED 2026-11-24 (C2a.1, Calibration Record 001 §24.2). The assertion that stood here
+    // was `n === served_count + pending_count`, while the implementation defined
+    // pending_count = n - served. Substituted, that is n === served + (n - served): true for
+    // every input, including a kernel whose only node was quarantined. It was a DEFECTIVE
+    // ASSERTION, not a changed requirement — S4 always required the four-way split, and the
+    // requirement has not moved. The replacement is harder to satisfy: it demands that a
+    // quarantined node be counted as quarantined, at four doors, on a state that contains all
+    // four kinds at once.
+    const stamp = Date.now() - 3000;
+    withState(scratch, children.keyFile, s => {
+      s.nodes.push(nodeRecord('The committee approved the budget after a long debate.', 'passed', stamp, 10));
+      s.nodes.push(nodeRecord('The harbour pilot logged the ferry departure at first light.', 'released', stamp + 1, 11));
+      s.nodes.push(nodeRecord('The finance team reconciled the invoices before the audit closed.', 'quarantined', stamp + 2, 12));
+    });
+    await sleep(2600); // kernel polls state.json every 2 s
+
+    const st = ((await req('GET', FACE_PORT, '/state')).body) || {};
+    const nd = ((await req('GET', FACE_PORT, '/nodes?limit=100')).body) || {};
+    const vf = ((await req('GET', KERNEL_PORT, '/verify')).body) || {};
+    const nv = ((await req('GET', KERNEL_PORT, '/nav')).body) || {};
+    const rc = ((await req('GET', KERNEL_PORT, '/recall?limit=100')).body) || {};
+    const four = o => [o.passed_count, o.released_count, o.pending_count, o.quarantined_count];
+    const total = a => a.reduce((x, y) => x + y, 0);
+    const oneEach = a => a.join(',') === '1,1,1,1';
+    assert('C5', 'total === passed + released + pending + quarantined, all four kinds, four doors',
+      st.n === 4 && oneEach(four(st)) && total(four(st)) === st.n &&
+      vf.n === 4 && oneEach(four(vf)) && total(four(vf)) === vf.n &&
+      nv.total_nodes === 4 && oneEach(four(nv)) && total(four(nv)) === nv.total_nodes &&
+      nd.total === 4 && nd.passed === 1 && nd.released === 1 && nd.pending === 1 && nd.quarantined === 1 &&
+      nd.passed + nd.released + nd.pending + nd.quarantined === nd.total &&
+      rc.served_count === 2 && rc.pending_count === 1 && rc.quarantined_count === 1,
+      {
+        state: { n: st.n, counts: four(st) },
+        verify: { n: vf.n, counts: four(vf) },
+        nav: { total_nodes: nv.total_nodes, counts: four(nv) },
+        nodes: { total: nd.total, passed: nd.passed, released: nd.released, pending: nd.pending, quarantined: nd.quarantined },
+        recall: { served_count: rc.served_count, pending_count: rc.pending_count, quarantined_count: rc.quarantined_count },
+      },
+      {
+        state: { n: 4, counts: [1, 1, 1, 1] },
+        verify: { n: 4, counts: [1, 1, 1, 1] },
+        nav: { total_nodes: 4, counts: [1, 1, 1, 1] },
+        nodes: { total: 4, passed: 1, released: 1, pending: 1, quarantined: 1 },
+        recall: { served_count: 2, pending_count: 1, quarantined_count: 1 },
+      });
 
     // C6 — a legacy node with no `screen` key is still served.
     process.env.GHOST9_KEY_FILE = children.keyFile;
