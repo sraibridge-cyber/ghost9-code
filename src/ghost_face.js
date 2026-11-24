@@ -22,6 +22,7 @@ const T       = require('./tesseract');
 const { classifyTier, VoidSpace } = require('./taotie');
 const { SpatialWeb }              = require('./spatial_web');
 const { runPrefilterAsync, DEFAULT_MODE } = require('./prefilter');
+const { screenOf, isServed }       = require('./screen');
 const { Readable } = require('stream');
 
 const PORT         = 7766;
@@ -121,13 +122,14 @@ function log(msg) {
 
 // Safety net: a blocked sentence is held, never silently dropped. Held items stay in state.quarantine
 // until they are released or superseded. Nothing is deleted.
-function holdItem(state, text, ts, disposition, stage) {
+function holdItem(state, text, ts, disposition, stage, gate) {
   state.quarantine = state.quarantine || [];
   const id = crypto.createHash('sha3-512').update(`${text}|${ts}|${state.quarantine.length}`).digest('hex').slice(0, 16);
   const item = {
     id, text, disposition, status: 'held', created_at: ts,
     score: stage ? stage.score : null, threshold: stage ? stage.threshold : null,
     reason: stage ? stage.reason : null, model: stage ? stage.model : null,
+    gate: gate || null,
   };
   state.quarantine.push(item);
   return item;
@@ -138,10 +140,8 @@ function textId(text) {
   return crypto.createHash('sha3-512').update(text).digest('hex').slice(0, 12);
 }
 
-// Only screened-clean or human-released nodes take part in propagation: served, swept, merged, indexed.
-function isServed(n) {
-  return n.screen === undefined || n.screen === 'passed' || n.screen === 'released';
-}
+// The serving predicate lives in one place: src/screen.js (S1). isServed and screenOf are
+// imported above; this file keeps no second copy of the rule.
 
 // Run a route handler in-process and capture its JSON response.
 function captureRoute(handler, req) {
@@ -260,8 +260,11 @@ const routes = {
     const screen = override ? 'released' : (qcRan ? 'passed' : 'pending');
     // Store, don't propagate. A sync-gate or classifier block is held, never admitted to the node list.
     if (!pre.pass && ['S', 'Q', 'QC'].includes(pre.blockedBy)) {
-      const disposition = pre.blockedBy === 'QC' ? 'quarantined' : `gate_${pre.blockedBy}`;
-      const item = holdItem(state, text, ts, disposition, pre.stages[pre.blockedBy]);
+      // S6: an unreachable classifier in block mode is UNKNOWN, and UNKNOWN is held under its own name.
+      const disposition = pre.blockedBy === 'QC'
+        ? (pre.reason === 'classifier_unavailable' ? 'classifier_unavailable' : 'quarantined')
+        : `gate_${pre.blockedBy}`;
+      const item = holdItem(state, text, ts, disposition, pre.stages[pre.blockedBy], pre.blockedBy);
       saveState(state);
       log(`HELD ${disposition} id=${item.id}`);
       return json(res, {
@@ -339,7 +342,7 @@ const routes = {
       held: held.length,
       released: all.filter(q => q.status === 'released').length,
       overrides: all.filter(q => q.override === true).length,
-      items: held.map(q => ({ id: q.id, disposition: q.disposition, created_at: q.created_at, score: q.score, threshold: q.threshold, reason: q.reason, text: q.text })),
+      items: held.map(q => ({ id: q.id, disposition: q.disposition, status: q.status, gate: q.gate || null, created_at: q.created_at, score: q.score, threshold: q.threshold, reason: q.reason, text: q.text })),
     });
   },
 
@@ -378,10 +381,10 @@ const routes = {
       const qc = pre.stages.QC;
       if (!pre.pass && ['S', 'Q', 'QC'].includes(pre.blockedBy)) {
         n.screen = 'quarantined'; out.quarantined++;
-        holdItem(state, n.content, n.ts || Date.now(), pre.blockedBy === 'QC' ? 'quarantined' : `gate_${pre.blockedBy}`, pre.stages[pre.blockedBy]);
+        holdItem(state, n.content, n.ts || Date.now(), pre.blockedBy === 'QC' ? 'quarantined' : `gate_${pre.blockedBy}`, pre.stages[pre.blockedBy], pre.blockedBy);
       } else if (qc && qc.reason === 'quarantine_classifier') {
         n.screen = 'quarantined'; out.quarantined++;
-        holdItem(state, n.content, n.ts || Date.now(), 'quarantined', qc);
+        holdItem(state, n.content, n.ts || Date.now(), 'quarantined', qc, 'QC');
       } else if (qc && qc.reason === 'ok') {
         n.screen = 'passed'; out.passed++;
         updateSpatialWeb(n);
@@ -406,8 +409,11 @@ const routes = {
       archiveCount = readSealedJson(ARCHIVE_FILE, []).length;
     }
 
+    const served = state.nodes.filter(isServed).length;
+
     return json(res, {
-      n, stm_count: stm.length, ltm_count: ltm.length,
+      n, served_count: served, pending_count: n - served,
+      stm_count: stm.length, ltm_count: ltm.length,
       capacity_pct: (n / MAX_NODES * 100).toFixed(1),
       merkle_root: state.merkle_root, whitlock: wc,
       taotie_status: { active: void_space.sweepCount > 0, triggerAt: void_space.triggerAt, maxNodes: void_space.maxNodes, sweepCount: void_space.sweepCount, totalDevoured: void_space.totalDevoured }, spatial_web: web.getNodeCount() + " nodes, " + web.getClusterCount() + " clusters",
@@ -422,14 +428,18 @@ const routes = {
     const limit  = Math.min(parseInt(url.searchParams.get('limit')  || '50'), 200);
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const tier   = url.searchParams.get('tier');
-    // Propagation filter: pending and quarantined nodes are stored but never served. Legacy nodes count as passed.
-    let nodes    = state.nodes.filter(n => n.screen === undefined || n.screen === 'passed' || n.screen === 'released');
+    // Store, never silently drop (S2): a pending node is listed as a record. /nodes has never
+    // carried content, and it still does not; the content rule is src/screen.js, not invisibility.
+    let nodes    = state.nodes.slice();
     if (tier)    nodes = nodes.filter(n => (n.tier || 'STM') === tier);
+    const count  = s => nodes.filter(n => screenOf(n) === s).length;
     const page   = nodes.slice(offset, offset + limit);
     return json(res, {
-      total: nodes.length, offset, limit,
+      total: nodes.length, passed: count('passed'), pending: count('pending'), released: count('released'),
+      served_count: count('passed') + count('released'), pending_count: count('pending'),
+      offset, limit,
       nodes: page.map(n => ({
-        hash: n.hash.slice(0, 16) + '…', mu: n.mu, tier: n.tier || 'STM',
+        hash: n.hash.slice(0, 16) + '…', screen: screenOf(n), mu: n.mu, tier: n.tier || 'STM',
         vertex: n.vertex, merge_count: n.merge_count || 1,
         merkle_root: n.merkle_root ? n.merkle_root.slice(0, 16) + '…' : null, ts: n.ts
       }))

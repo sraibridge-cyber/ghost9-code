@@ -12,6 +12,7 @@ const crypto = require('crypto');
 
 const CC     = require('./coherence_calculus');
 const T      = require('./tesseract');
+const { screenOf, isServed, mayServeContent } = require('./screen');
 const { classifyTier }  = require('./taotie');
 const { readSealedJson } = require('./at_rest');
 
@@ -91,28 +92,50 @@ const routes = {
     const q      = (url.searchParams.get('q') || '').toLowerCase();
     const vertex = url.searchParams.get('vertex');
     const tier   = url.searchParams.get('tier');
+    const screen = url.searchParams.get('screen');
     const limit  = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100);
 
     let nodes = _state.nodes;
     if (q)      nodes = nodes.filter(n => n.content.toLowerCase().includes(q));
     if (vertex) nodes = nodes.filter(n => n.vertex === vertex);
     if (tier)   nodes = nodes.filter(n => (n.tier || 'STM') === tier);
+    if (screen) nodes = nodes.filter(n => screenOf(n) === screen);
 
-    const results = nodes.slice(-limit).reverse().map(n => ({
-      hash:        n.hash.slice(0, 24) + '…',
-      content:     n.content.slice(0, 200),
-      mu:          n.mu,
-      tier:        n.tier || 'STM',
-      vertex:      n.vertex,
-      merge_count: n.merge_count || 1,
-      ts:          n.ts
-    }));
-    return json(res, { q, vertex, tier, count: results.length, results });
+    // S3: an unscreened node is returned as a record — hash, screen, mu, vertex, ts — never text,
+    // and never a 404. The node exists; it has not been read. May this text leave is asked once,
+    // in src/screen.js (S1); this door does not restate the rule.
+    const served = _state.nodes.filter(isServed).length;
+    const results = nodes.slice(-limit).reverse().map(n => {
+      const canServe = mayServeContent(n);
+      return {
+        hash:        n.hash.slice(0, 24) + '…',
+        screen:      screenOf(n),
+        content:     canServe ? n.content.slice(0, 200) : null,
+        content_withheld: !canServe,
+        served:      canServe,
+        reason:      canServe ? 'screened' : 'unscreened',
+        mu:          n.mu,
+        tier:        n.tier || 'STM',
+        vertex:      n.vertex,
+        merge_count: n.merge_count || 1,
+        ts:          n.ts
+      };
+    });
+    return json(res, {
+      q, vertex, tier, screen, count: results.length,
+      served_count: served, pending_count: _state.nodes.length - served,
+      results
+    });
   },
 
   'GET /verify': async (req, res) => {
     const result = verifyChain(_state.nodes);
-    return json(res, { ...result, n: _state.nodes.length, checked_at: Date.now() });
+    const served = _state.nodes.filter(isServed).length;
+    return json(res, {
+      ...result, n: _state.nodes.length,
+      served_count: served, pending_count: _state.nodes.length - served,
+      checked_at: Date.now()
+    });
   },
 
   'GET /nav': async (req, res) => {
@@ -130,6 +153,8 @@ const routes = {
       neighbors:        neigh,
       distribution:     dist,
       total_nodes:      _state.nodes.length,
+      served_count:     _state.nodes.filter(isServed).length,
+      pending_count:    _state.nodes.length - _state.nodes.filter(isServed).length,
       tesseract_edges:  edges.length,
       dominant_vertex:  T.dominantVertex(_state.nodes)
     });
