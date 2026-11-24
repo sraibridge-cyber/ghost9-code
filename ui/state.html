@@ -202,6 +202,17 @@
       if(path === '/state') updateStrip(r.data);
     }
 
+    // C2a.1: since C2a (S3) /recall returns content: null for a node it may not serve,
+    // with the reason beside it. An empty field tells the operator nothing; say what the
+    // record says instead.
+    function contentLabel(n){
+      if (typeof n.content === 'string' && n.content.length) return n.content;
+      if (n.screen === 'quarantined' || n.screen === 'held') return 'withheld, quarantined';
+      if (n.screen === 'pending') return 'withheld, unscreened';
+      if (n.content_withheld === true || n.served === false) return 'withheld, unscreened';
+      return '—';
+    }
+
     function renderNodes(nodes){
       const el = document.getElementById('node-list');
       if(!nodes || !nodes.length){
@@ -211,7 +222,7 @@
       el.innerHTML = '<div class="node-grid">' + nodes.map(n=>`
         <div class="node-card">
           <div class="node-hash">${n.hash || '—'}</div>
-          <div class="node-content">${n.content || '—'}</div>
+          <div class="node-content">${contentLabel(n)}</div>
           <div class="node-meta">
             <span>μ <span class="node-mu">${(n.mu||0).toFixed(4)}</span></span>
             <span class="node-tier">${n.tier||'STM'}</span>

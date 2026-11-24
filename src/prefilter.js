@@ -83,9 +83,12 @@ function runPrefilter(text, context = [], mode = DEFAULT_MODE) {
 }
 
 // Sync gates first. If they pass and QC is not 'off', ask the local classifier.
-// Fail-open everywhere: an unreachable classifier is recorded in the trace and the sentence goes on.
-// Only a flagged score blocks, and only in 'block' mode. The phone build has no classifier yet, so
-// fail-closed would refuse every sentence. clf.classify/clf.opts are injectable for tests.
+// Disposition is by mode (BRIEF 005 Addendum 1, S6, 2026-11-24): in 'advisory' an unreachable
+// classifier is recorded and the sentence goes on; in 'block' it is UNKNOWN, and UNKNOWN is held.
+// Only a flagged score blocks otherwise, and only in 'block' mode. The phone build has no
+// classifier yet, so in block mode nothing is admitted — which is what asking to block without
+// the means to detect means. A build that wants admission sets 'advisory', visibly, in config.
+// clf.classify/clf.opts are injectable for tests.
 async function runQcStage(text, context = [], mode = DEFAULT_MODE, clf = {}) {
   const pre = runPrefilter(text, context, mode);
   const qcMode = mode.QC || 'off';
@@ -96,7 +99,8 @@ async function runQcStage(text, context = [], mode = DEFAULT_MODE, clf = {}) {
   const r = await classifyFn(text, clf.opts || {});
   let stage;
   if (!r.ok) {
-    stage = { mode: qcMode, pass: true, reason: 'classifier_unavailable', error: r.error, score: null, flagged: null };
+    // S6: 'advisory' reports and passes; 'block' fails closed. UNKNOWN is not success.
+    stage = { mode: qcMode, pass: qcMode !== 'block', reason: 'classifier_unavailable', error: r.error, score: null, flagged: null };
   } else {
     const score = r.scores[0];
     const flagged = score >= CLF.threshold;
