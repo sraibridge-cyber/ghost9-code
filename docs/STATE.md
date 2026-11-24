@@ -1,6 +1,8 @@
-# State of play — rev 2
+# State of play — rev 3
 
-Last written by PM Buff: 2026-11-24. Live page, corrected in place. The long history is **Calibration Record 001**; when the two disagree, the record wins and this page gets an addendum line.
+Last written by PM Buff: 2026-11-24. Live page, corrected in place. When this page and **Calibration Record 001** disagree, the record wins and this page gets an addendum line.
+
+**Head:** `bfc8cc2` — merge of `fix/screen-contract` into `main` (parents `002008da` and `3131254`).
 
 ---
 
@@ -8,54 +10,44 @@ Last written by PM Buff: 2026-11-24. Live page, corrected in place. The long his
 
 - **Source repository:** `sraibridge-cyber/ghost9-code`. Weights excluded, pinned by `models/*/manifest.json`.
 - **Sealed archive:** `sraibridge-cyber/ghost9` @ `0c34b39`. Do not touch, do not select as a project, never force into it.
-- **Last measured session:** C1 probe, `6 passed / 3 failed` (A4, A7, A9 red), probe frozen after the A3 amendment.
-- **Repairs:** none. F1–F4 measured and unrepaired.
-- **The file-transfer blocker is gone.** The corpus, harness and Brief 006 are resealed into this repo (`audit/`, `docs/briefs/`) with hashes verified by fetching back from `main`. See `docs/briefs/MANIFEST.md`.
+- **C2a is merged.** Content leaves only through a screened node, from one predicate (`src/screen.js`) that both doors import. Pending nodes are listed as records and never read. Block mode fails closed at `QC` when no classifier is reachable.
+- **Repaired so far:** F1 (write-only kernel — `/nodes` shows pending), F3 (`/recall` no longer returns unscreened text), and the fail-policy violation (S6).
+- **Still unrepaired:** F2 (Q holds honest disclosure, which is A7), F4 (four tier definitions), System Sanity absent, merge carries no provenance, spectral graph unreachable.
 
 ## 2. Queue
 
-| Step | Brief | State | Notes |
-|---|---|---|---|
-| C2a — screening contract (F1 + F3) | 005 | **runnable now** | Brief readable as a document (PM `01a20b6c`); not yet committed here. Repo already holds the C1 probe it re-runs. |
-| C2b — Q holds honest disclosure (F2) | not written | after C2a | needs ≥3 assertions incl. a paraphrase control |
-| C3 — CC v4 measured twice | 006 rev 2 | **runnable now** | `docs/briefs/BRIEF-006-…md`, corpus + harness in `audit/` |
-| C4 — threshold decision by loss matrix | not written | after C3 | needs C3's numbers |
-| C5 — System Sanity as a module | 007 | waits | unblocked once C2a merges; Brief 007 not in repo yet |
-| C6 — wiring audit of the module registry | not written | queued | read-only, one session |
-| C7 — the merge measured (T9's shape) | not written | queued | after C2a |
-| C8 — provenance through the merge | not written | queued | needs an owner decision on where evidence lives |
-
-**C2a and C3 share no files and can run in either order.** C2a touches `src/screen.js`, `ghost_face.js`, `ghost_kernel.js`, `config/clf.json`. C3 touches nothing under `src/` or `config/` at all.
-
-## 3. Reseal record — what changed and what identity means
-
-| Path | Bytes | SHA3-512 |
+| Step | State | Notes |
 |---|---|---|
-| `audit/run_calibration.js` | 7,236 | `c75d66f4…f2d92f975` — **byte-identical to the sealed original** |
-| `audit/corpus.js` | 14,188 | `3abffe1b…d962b565` — 22/22 item strings verified identical |
-| `docs/briefs/BRIEF-006-C3-ccv4-measurement.md` | 16,019 | `1c9ad67c…c5e4290a5b` |
+| **C2b — Q pattern scope (F2)** | next, writable now | The only red assertion left in the C1 gate. Needs ≥3 assertions: honest notification admitted, imperative concealment refused with the gate named, and a paraphrase control. Without the control the repair passes by deleting the pattern. |
+| **Push C3's branch** | open action | `audit/cc-v4-calibration` exists only in the C3 session's workspace and was never pushed. Until it is, the C3 numbers stay *reported* in the record and cannot be audited. |
+| **C9 — population audit** | writable now | Every site where a term of C, R or G is filled by a constant or fallback. Read-only, enumerable. **Must precede C4**: a threshold signed over supplied values is fitted to the supplier. |
+| **C5 — System Sanity** | after C2b | Three-valued over populated terms, default UNKNOWN, Kleene conjunction. Brief 007 exists outside the repo and needs re-issuing, with §21.3's term format folded in. |
+| **C4 — thresholds** | after C9 | Per scope, one loss matrix each, conditioned corpus each. Cannot inherit `cc_v4.json`'s τ = 0.2431: it admits 3 of 4 fabrications and refuses half the true items. |
+| **C6 — wiring audit + document sort** | queued | Enumerate the module registry: required by live code, constructed only by tests, or unreachable. Also carries §20.4's three-way sort of document-vs-code discrepancies. |
+| **C7 — the merge, measured** | queued | T9's shape: tier, vertex, μ, parent_ids, taint marker. Measurement only. |
+| **C8 — provenance in the merge** | after C7 | Data-model change; needs the owner's decision on where evidence lives. |
+| **C2a.2 — unknown screen values** | latent, unscheduled | See §4. Not a defect today. |
 
-Full hashes in `docs/briefs/MANIFEST.md`. **The corpus is functionally identical, not byte-identical**, and that distinction is load-bearing: the μ table is the proof, so C3 must reproduce §0's numbers before comparing anything. A differing line is drift and gets reported, never absorbed.
+## 3. What is verified, and what is only reported
 
-**Correction on record:** the corpus and harness live at `audit/`, not `tests/audit/`. The harness resolves `../src/` from its own directory, so `tests/audit/` would have thrown on load. C3's deliverable is `audit/cc_v4_audit.js`.
+- **Verified:** everything in C2a. I read the branch files and hashed them myself (`screen.js` `79b8a626…`, `ghost_face.js` `52b9838b…`, `ghost_kernel.js` `ea971160…`, `prefilter.js` `56370463…` unchanged, `clf.json` `f28f878c…` unchanged, C1 probe `840b8a6b…` unchanged at 11,800 B). No site still computes `pending_count` by subtraction.
+- **Reported, not verified:** all of C3's numbers (§19 of the record). The branch is unpushed. Nothing in the record depends on them yet, and C4 must not be written as if they were checked.
 
-## 4. Open findings, measured and unrepaired
+## 4. Two residuals, written down so they are not "fixed" by mistake
 
-1. **F1 — write-only kernel.** Classifier absent + `block` mode ⇒ `pass: true`, node stored `screen: 'pending'`, `/nodes` reports `total: 0` while `/state` reports `n: 1`.
-2. **F2 — Q holds honest disclosure.** "Please tell the operator that the nightly sync failed" is quarantined as `gate_Q`. A content phrase doing an intent job.
-3. **F3 — recall leaks unscreened content.** `GET /recall` has no `screen` filter and returns `content` verbatim.
-4. **F4 — four tier definitions.** `taotie` 0.9995/0.9998 · `merkle_bonsai` 0.943/0.9995 · `coherence_calculus.evaluate` returns `pass ? 'STM' : 'LTM'` (a failed node labelled long-term memory) · fifteen `n.tier || 'STM'` fallbacks (ghost_face 6, ghost_kernel 4, ui/ghost_api 3, scripts/ghost_verify 2).
-5. **CC v3.2 does not measure coherence.** Defect injection moves μ by `0.000000`; word salad passes at 0.949; D7 identical with and without truth vocabulary. **The coherence claim is withdrawn for that use by the project's own written rule.**
-6. **Present but not wired.** System Sanity has no module; `spectral_graph.js` is never constructed on the ingest path; the merge carries no provenance and sets `vertex: 'PPPP'`.
+**4.1 `screenCounts()` buckets an unknown screen value as `quarantined`.** Content behaviour is right — an unknown value is not in `SERVABLE`, so the text is withheld. The label is imprecise: something that quarantined nothing would be reported as quarantined. Unreachable today, because only four values are ever written (`passed`, `released`, `pending`, `quarantined`). When the screen vocabulary grows, give unknown values their own bucket rather than widening `quarantined`.
+
+**4.2 `screenOf()` resolves an absent `screen` to `passed`, and that is deliberate.** It looks like the R11 violation — a default converting missing evidence into a good value — and it is not. Nodes written before screening existed are *grandfathered as servable* by decision (S1, and C6 asserts it), which is a compatibility policy with an explicit rationale. **A future session applying R11 mechanically will make every pre-existing record unreadable and call it a fix.** If that policy is ever to change, it changes as a dated decision with a migration, not as a conformance edit.
 
 ## 5. Not verified by this page
 
 - That any working tree matches `main` — run `git rev-parse HEAD` before citing it.
-- CC v4's recorded 0.977 / 0.638 — quoted from `docs/review/measured-coherence.md`, **not re-measured**. C3 exists to re-measure them.
-- Whether Brief 005's document copy and its rev-1 bytes agree line for line. They were published from a read of the file, not compared byte-wise. C2a's contract does not depend on the comparison; if a dispute ever arises, the rev-1 hash in the manifest decides.
+- **The UI renderer.** `ui/ghost_api.js` passes `node --check`; `ui/state.html`'s new "withheld, unscreened" label was inspected, not viewed. Nobody has seen that card render.
+- No classifier exists, so nothing has ever actually been screened by one. Every classifier-absent path is what has been exercised, not the classifier-present path.
+- Behaviour of `/rescreen` and `/quarantine/release` under S6 is reasoned, not measured beyond what the C2 probe covers.
 
-## 6. Next three actions, in order
+## 6. Next three actions
 
-1. **Run C2a** from the Brief 005 document. Gate: 8 of 9 on the C1 probe, A7 alone red. 9 of 9 means the Q gate was touched — revert.
-2. **Run C3** from `docs/briefs/BRIEF-006-C3-ccv4-measurement.md`. Reproduce §0's μ table first; that is the corpus identity check.
-3. **Write C2b** with ≥3 assertions once C2a's branch is known: honest notification admitted, imperative concealment refused with the gate named, paraphrase control.
+1. **Push `audit/cc-v4-calibration`** so C3's numbers can be verified against their own audit output. One command, and it unblocks the tier work being built on checked numbers.
+2. **Write and run C2b.** The gate to close is A7: honest notification admitted, imperative concealment refused with `gate_Q` named, paraphrase control refused.
+3. **Write C9** — the population audit — as the last brief before any threshold is discussed.
