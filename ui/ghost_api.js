@@ -156,15 +156,44 @@ function _simulateOffline(path, opts, isFace) {
   } else {
     // KERNEL offline simulation
     if (path === '/recall') {
+      // Same shape the kernel returns since C2a (S3): a node that may not be served comes back
+      // as a record — content null, served false, the reason beside it — never as empty text.
       const limit = 20;
-      const results = _offline.nodes.slice(-limit).reverse().map(n => ({
-        hash: n.hash.slice(0, 16) + '…', content: n.content.slice(0, 200),
-        mu: n.mu, tier: n.tier || 'STM', vertex: n.vertex, merge_count: n.merge_count || 1, ts: n.ts
-      }));
-      return { q: '', vertex: null, tier: null, count: results.length, results };
+      const served = n => n.screen === undefined || n.screen === 'passed' || n.screen === 'released';
+      const results = _offline.nodes.slice(-limit).reverse().map(n => {
+        const canServe = served(n);
+        const screen = n.screen || 'passed';
+        return {
+          hash: n.hash.slice(0, 16) + '…',
+          screen,
+          content: canServe ? n.content.slice(0, 200) : null,
+          content_withheld: !canServe,
+          served: canServe,
+          reason: canServe ? 'screened' : 'unscreened',
+          mu: n.mu, tier: n.tier || 'STM', vertex: n.vertex, merge_count: n.merge_count || 1, ts: n.ts
+        };
+      });
+      return {
+        q: '', vertex: null, tier: null, screen: null, count: results.length,
+        served_count: results.filter(r => r.served).length,
+        pending_count: results.filter(r => r.screen === 'pending').length,
+        quarantined_count: results.filter(r => r.screen === 'quarantined').length,
+        results
+      };
     }
     if (path === '/verify') {
-      return { status: 'OK', chain_valid: true, n: _offline.n, checked_at: Date.now() };
+      const counts = _offline.nodes.reduce((c, n) => {
+        const s = n.screen || 'passed';
+        c[s === 'passed' || s === 'released' || s === 'pending' ? s : 'quarantined']++;
+        return c;
+      }, { passed: 0, released: 0, pending: 0, quarantined: 0 });
+      return {
+        status: 'OK', chain_valid: true, n: _offline.n,
+        passed_count: counts.passed, released_count: counts.released,
+        pending_count: counts.pending, quarantined_count: counts.quarantined,
+        served_count: counts.passed + counts.released,
+        checked_at: Date.now()
+      };
     }
     if (path === '/nav') {
       return {
