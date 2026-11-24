@@ -1,6 +1,23 @@
-# BRIEF 006 — C3: CC v4 measured, twice, against predictions written first
+> **Implementation notes — not the issued brief.** The authoritative
+> `BRIEF-006-C3-ccv4-measurement.md` is held by the PM: 13,333 bytes, 169 lines, SHA3-512
+> `f22d7fb4b1921056928017412931c4367328c4571bf1cfafe430c99937f749902d699ec06a643bd3d6fec85a95031a04a8da3104f82f13dd7bf35b47c2542824`
+> (Calibration Record 001 §16.2). **Where this file differs from the issued brief, the
+> issued brief governs.**
+>
+> What this is: the implementing session's independent reconstruction, written when no
+> brief was present in the repository. Kept under §16.2(2). Not an issued document; do not
+> cite it as BRIEF 006.
+>
+> **Superseded in part by §16.3.** Its §3.1 instructs the session to seal a *new* corpus.
+> That remedy is withdrawn: the corpus exists as `corpus.js`
+> (SHA3-512 `50cce458…b922b936`) plus `run_calibration.js` (`c75d66f4…d92f975`), and sealing
+> a fresh one would break comparability with the only baseline the project has. The issued
+> brief's instruction — commit both files verbatim, verify both hashes, re-run v3.2 to
+> reproduce §2's numbers, then measure v4 on the same file — governs.
 
-**Complex System Sanity Labs** · issued 2026-11-24 by Buff (PM) for Kyle S. Whitlock
+# BRIEF 006 (reconstruction) — C3: CC v4 measured, twice, against predictions written first
+
+**Complex System Sanity Labs** · reconstructed 2026-11-24 by the implementing session — **not issued by the PM**
 **Session:** C3 — one session, one re-seal, one honest result
 **Target:** `sraibridge-cyber/ghost9-code` @ `ed7cfff`
 **Predecessor:** Calibration Record 001 — the ingest gate measures length

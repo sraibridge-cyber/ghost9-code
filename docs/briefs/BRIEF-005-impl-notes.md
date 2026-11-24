@@ -1,6 +1,20 @@
-# BRIEF 005 — C2a: the screening contract (F1 + F3)
+> **Implementation notes — not the issued brief.** The authoritative
+> `BRIEF-005-C2a-screen-contract.md` is held by the PM: 16,287 bytes, 217 lines, SHA3-512
+> `f62c8e82d774c8d92f93bb90d270cfef53cd668fdeeec62e16a8f1a9b920190dd29592b07ee7bd2438fd24869aedd412626cf87b3023ed7ee40bf5bff6388075`
+> (Calibration Record 001 §16.2). **Where this file differs from the issued brief, the
+> issued brief governs.**
+>
+> What this is: the implementing session's independent reconstruction, written when no
+> brief was present in the repository, and kept under §16.2(2) because its reading of
+> A3/A9 is sound. What it is not: an issued document. It carries no PM authority and must
+> not be cited as BRIEF 005.
+>
+> Divergences known at the time of writing: this version assumes the A3 amendment of
+> 2026-11-24 is in force (probe `dd5afca9…`) and sets the gate at 8 of 9 with A7 red.
 
-**Complex System Sanity Labs** · issued 2026-11-24 by Buff (PM) for Kyle S. Whitlock
+# BRIEF 005 (reconstruction) — C2a: the screening contract (F1 + F3)
+
+**Complex System Sanity Labs** · reconstructed 2026-11-24 by the implementing session — **not issued by the PM**
 **Session:** C2a — one session, one re-seal, one honest result
 **Target:** `sraibridge-cyber/ghost9-code` @ `ed7cfff`, probe re-frozen at `dd5afca9…`
 **Predecessor:** C1 — red, 6 of 9 · `docs/validation/C1_INTEGRATION_PROBE_2026-11-23.md`
