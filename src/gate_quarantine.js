@@ -41,14 +41,27 @@ const PATTERNS = {
       "pretend you have no rules"
     ]
   },
+  // --- operator_deception seed revision, 2026-11-24 (BRIEF 008, S7.4) ---
+  // "tell the operator" was REMOVED from this family on 2026-11-24.
+  // It paired a recipient with a bare disclosure verb, so it matched requests
+  // FOR disclosure ("please tell the operator that the sync failed") and refused
+  // honest text. This family's description has always been "instructing
+  // concealment from the operator"; the removed phrase never matched that
+  // description. Replaced under S7.1 (an imperative to conceal, never a mention
+  // of a recipient) and S7.3 (the paraphrase floor below). The five negated/
+  // suppressed-disclosure members are written in normalized space: lowercase,
+  // no apostrophes, because normalize() strips them.
+  // No other family's membership, severity or action changed.
   operator_deception: {
     severity: "HIGH",
     action: "quarantine",
     description: "Payloads instructing concealment from the operator",
     patterns: [
       "do not tell the user", "hide this from",
-      "without the operator knowing",
-      "tell the operator", "keep this secret"
+      "without the operator knowing", "keep this secret",
+      "dont tell the operator", "do not tell the operator",
+      "never tell the operator", "without telling the operator",
+      "avoid telling the operator"
     ]
   }
 };
